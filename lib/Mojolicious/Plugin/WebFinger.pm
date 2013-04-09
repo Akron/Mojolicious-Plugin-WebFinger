@@ -506,7 +506,7 @@ the resource name and the L<XRD|XML::Loy::XRD> object.
 =head1 ROUTES
 
 The route C</.well-known/webfinger> is established as the
-lrdd L<endpoint|Mojolicious::Plugin::Util::Endpoint>.
+lrdd L<endpoint|Mojolicious::Plugin::Util::Endpoint> C<webfinger>.
 This plugin depends on this route,
 and the C<resource> and C<rel> attributes. Although other
 routes are possible for webfinger/lrdd in older drafts of
