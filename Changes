@@ -1,0 +1,3 @@
+0.01 2013-03-03
+        - Separated WebFinger from Sojolicious.
+   	- Support for WebFinger Draft 10.
