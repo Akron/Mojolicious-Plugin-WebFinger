@@ -3,6 +3,7 @@ log
 sandbox
 examples/*
 !examples/webfingerapp
+!examples/webfingerapp-async
 public
 todo.org
 create-cpan.pl
