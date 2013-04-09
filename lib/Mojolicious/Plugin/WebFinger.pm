@@ -488,7 +488,7 @@ or on registration.
 
 =head1 HOOKS
 
-=item before_serving_webfinger
+=head2 before_serving_webfinger
 
   $mojo->hook(
     before_serving_webfinger => sub {
