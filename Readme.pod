@@ -1,0 +1,177 @@
+=pod
+
+=head1 NAME
+
+Mojolicious::Plugin::WebFinger - Serve and Retrieve WebFinger Documents
+
+
+=head1 SYNOPSIS
+
+  # Mojolicious
+  $app->plugin('WebFinger');
+
+  # Mojolicious::Lite
+  plugin 'WebFinger';
+
+  # Serves XRD or JRD from /.well-known/webfinger
+
+  # Discover WebFinger resources the blocking ...
+  print $c->webfinger('acct:bob@example.com')
+          ->link('describedby')
+          ->attrs('href');
+
+  # ... or non-blocking way
+  $c->webfinger('acct:bob@example.com' => sub {
+    my ($xrd, $header) = @_;
+    # ...
+  });
+
+
+=head1 DESCRIPTION
+
+L<Mojolicious::Plugin::WebFinger> provides several functions for the
+L<WebFinger Protocol|https://datatracker.ietf.org/doc/draft-ietf-appsawg-webfinger/>.
+It supports C<.well-known/webfinger> discovery as well as HostMeta
+and works with both XRD and JRD.
+
+
+=head1 HELPERS
+
+=head2 webfinger
+
+  # In Controllers:
+  my $xrd = $self->webfinger('acct:me@sojolicio.us');
+
+  # Only secure discovery
+  my $xrd = $self->webfinger('acct:me@sojolicio.us', -secure);
+
+  # Use lrdd with host and resource description
+  my $xrd = $self->webfinger('sojolicio.us' => 'http://sojolicio.us/me.html', -secure);
+
+  # Use rel parameters
+  my $xrd = $self->webfinger('acct:me@sojolicio.us' => ['describedBy'], -secure);
+
+  # Use non-blocking
+  $self->webfinger('acct:me@sojolicio.us' => [qw/describedBy author/] => sub {
+    my $xrd = shift;
+    ...
+  });
+
+  # Serve local WebFinger documents
+  my $xrd = $self->webfinger('me');
+
+Returns the WebFinger resource as a L<XML::Loy::XRD> document.
+Accepts the WebFinger resource, an optional array reference
+of relations, and an optional callback for non-blocking requests.
+The appended flag indicates, how the discovery should be done.
+C<-secure> indicates, that discovery over C<https> only is allowed.
+C<-modern> indicates, that only C</.well-known/host-meta> is discovered.
+C<-old> indicates, that only host-meta and lrdd discovery is used.
+
+
+=head1 CALLBACKS
+
+=head2 fetch_webfinger
+
+  # Establish a callback
+  $mojo->callback(
+    fetch_webfinger=> sub {
+      my ($c, $host, acct, $header) = @_;
+
+      my $doc = $c->chi->get("webfinger-$host-$acct");
+      return unless $doc;
+
+      my $header = $c->chi->get("webfinger-$host-$acct-headers");
+
+      # Return document
+      return ($c->new_xrd($doc), Mojo::Headers->new->parse($header));
+    }
+  );
+
+This callback is released before a WebFinger document
+is retrieved from a foreign server. The parameters passed to the
+callback include the current controller object, the host's
+name and the resource name.
+
+If a L<XML::Loy::XRD> document associated with the requested
+host name is returned (and optionally a L<Mojo::Headers> object),
+the retrieval will stop.
+
+The callback can be established with the
+L<callback|Mojolicious::Plugin::Util::Callback/callback>
+helper or on registration.
+
+This can be used for caching.
+
+
+=head2 prepare_webfinger
+
+  if ($c->callback(prepare_webfinger => sub {
+    my ($c, $resource) = @_;
+    if ($resource eq 'acct:akron@sojolicio.us') {
+      $c->stash('profile' => 'http://sojolicio.us/user/akron');
+      return 1;
+    };
+  })) {
+    print 'The requested resource exists!';
+  };
+
+This callback is triggered before a webfinger document is served.
+The requested resource is passed. A boolean value indicating the
+validity of the resource is expected.
+A rendered response in the callback will be respected and further
+serving won't be processed.
+
+The callback can be either set using the
+L<callback helper|Mojolicious::Plugin::Util::Callback/callback>
+or on registration.
+
+
+=head1 HOOKS
+
+=item before_serving_webfinger
+
+  $mojo->hook(
+    before_serving_webfinger => sub {
+      my ($c, $res, $xrd) = @_;
+      if ($c->stash('profile')) {
+        $xrd->link(profile => { href => $c->stash('profile') } );
+      };
+    });
+
+This hook is run before the requested WebFinger document is served.
+The hook passes the current controller object,
+the resource name and the L<XRD|XML::Loy::XRD> object.
+
+
+=head1 ROUTES
+
+The route C</.well-known/webfinger> is established as the
+lrdd L<endpoint|Mojolicious::Plugin::Util::Endpoint>.
+This plugin depends on this route,
+and the C<resource> and C<rel> attributes. Although other
+routes are possible for webfinger/lrdd in older drafts of
+the specification, and different forms for the resource definition,
+this is assumed to be a future-proof best practice.
+
+
+=head1 DEPENDENCIES
+
+L<Mojolicious> (best with SSL support),
+L<Mojolicious::Plugin::Util::Endpoint>,
+L<Mojolicious::Plugin::Util::Callback>,
+L<Mojolicious::Plugin::HostMeta>.
+
+=head1 AVAILABILITY
+
+  https://github.com/Akron/Mojolicious-Plugin-WebFinger
+
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright (C) 2011-2013, L<Nils Diewald|http://nils-diewald.de/>.
+
+This program is free software, you can redistribute it
+and/or modify it under the same terms as Perl.
+
+=cut
