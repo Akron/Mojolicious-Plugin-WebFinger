@@ -82,14 +82,15 @@ sub register {
       # Bad request - no resource defined
       return $c->render(status => 400) unless $nres;
 
+      my $xrd = $c->new_xrd;
+
       # Check for 'prepare_webfinger' callback
       if ($c->callback(prepare_webfinger => $nres)) {
 
 	# The response body is already rendered
 	return if $c->res->body;
 
-	my $xrd =
-	  _serve_webfinger($c, $acct, $nres, $res);
+	my $xrd = _serve_webfinger($c, $acct, $nres, $res);
 
 	# Seconds given
 	if ($xrd && $seconds) {
@@ -129,7 +130,7 @@ sub register {
 	    '?' => undef
 	  }
 	)
-      })->add(Title => 'Webfinger (JRD)');
+      });
 
       # Add XRD link
       $hostmeta->link(lrdd => {
@@ -140,7 +141,7 @@ sub register {
 	    '?' => undef
 	  }
 	)
-      })->add(Title => 'Webfinger (XRD)');
+      });
     });
 
   # webfinger helper
@@ -200,12 +201,15 @@ sub _fetch_webfinger {
     return $xrd;
   };
 
-  # Delete resource
-  $nres =~ s/^acct://;
-
   my ($xrd, $headers) = $c->callback(
     fetch_webfinger => ($host, $nres, $header)
   );
+
+  # Store unchanged normalized resource
+  $res = $nres;
+
+  # Delete resource
+  $nres =~ s/^acct://;
 
   if ($xrd) {
     # Filter relations
@@ -214,7 +218,7 @@ sub _fetch_webfinger {
     # Set headers to default
     $headers ||= Mojo::Headers->new if $cb || wantarray;
 
-    # Return cached hostmeta document
+    # Return cached webfinger document
     return $cb->( $xrd, $headers ) if $cb;
     return ( $xrd, $headers ) if wantarray;
     return $xrd;
@@ -231,56 +235,149 @@ sub _fetch_webfinger {
     $secure = 1;
   };
 
-# Begin Blocking/Non-Blocking treatment
+  # Modern webfinger path
+  my $path = '//' . $host . $WK_PATH . '?resource=' . url_escape $nres;
+  $path = 'https:' . $path if $secure;
 
-  unless (exists $flag{-old}) {
-    my $path = '//' . $host . $WK_PATH . '?resource=' . url_escape $nres;
-    $path = 'https:' . $path if $secure;
+  # Non-blocking
+  if ($cb) {
 
-    ($xrd, $headers) = $c->get_xrd($path => $header);
+    # Initialize delay array
+    my @delay;
 
-    # Todo: support header expiration date
-    if ($xrd && !$xrd->expired) {
-      $xrd = $xrd->filter_rel($rel) if $rel;
-      return ($xrd, $headers) if wantarray;
-      return $xrd;
+    # If modern is allowed
+    unless (exists $flag{-old}) {
+
+      # push to delay array
+      push(
+	@delay,
+	sub {
+	  my $delay = shift;
+	  # Retrieve from modern path
+	  $c->get_xrd(
+	    $path => $header => $delay->begin(0)
+	  );
+	},
+	sub {
+	  my ($delay, $xrd, $headers) = @_;
+
+	  # Document found
+	  if ($xrd) {
+
+	    # Hook for caching
+	    $c->app->plugins->emit_hook(
+	      after_fetching_webfinger => (
+		$host, $nres, $xrd, $headers
+	      ));
+
+	    # Filter based on relations
+	    $xrd = $xrd->filter_rel($rel) if $rel;
+
+	    # Successful
+	    return $cb->($xrd, $headers);
+	  };
+	  return $cb->() if exists $flag{-modern};
+	  $delay->begin;
+	});
+
+      # Old hostmeta discovery
+      push(
+	@delay,
+	sub {
+	  my $delay = shift;
+
+	  # Hostmeta and lrdd
+	  $c->hostmeta(
+	    $host,
+	    $header,
+	    ['lrdd'],
+	    ($secure ? '-secure' : undef) =>
+	      $delay->begin(0)
+	  );
+	},
+	sub {
+	  # Hostmeta document
+	  my ($delay, $xrd) = @_;
+
+	  # Hostmeta is expired
+	  return $cb->() if $xrd->expired;
+
+	  # Prepare lrdd
+	  my $lrdd = _get_lrdd($xrd) or return $cb->();
+
+	  # Get lrdd
+	  $c->get_xrd($lrdd => $header => $delay->begin(0))
+	},
+	sub {
+	  my $delay = shift;
+	  my ($xrd, $headers) = @_;
+
+	  # No lrdd xrd document found
+	  return $cb->() unless $xrd;
+
+	  # Hook for caching
+	  $c->app->plugins->emit_hook(
+	    after_fetching_webfinger => (
+	      $host, $nres, $xrd, $headers
+	    ));
+
+	  # Filter based on relations
+	  $xrd = $xrd->filter_rel($rel) if $rel;
+
+	  # Successful
+	  return $cb->($xrd, $headers);
+	});
     };
+
+    my $delay = Mojo::IOLoop->delay(@delay);
+
+    # Wait if IOLoop is not running
+    $delay->wait unless Mojo::IOLoop->is_running;
+    return;
   };
 
-  # No further discovery
-  return if exists $flag{-modern};
+  # Blocking
+  # Modern discovery
+  unless (exists $flag{-old}) {
 
-  # Hostmeta and lrdd
-  $xrd = $c->hostmeta(
-    $host,
-    $header,
-    ['lrdd'],
-    ($secure ? '-secure' : undef)
-  );
+    # Retrieve from modern path
+    ($xrd, $headers) = $c->get_xrd($path => $header);
+  };
 
-  return unless $xrd;
+  # Not found yet
+  unless ($xrd) {
 
-  my $lrdd = $xrd->link('lrdd');
+    # No further discovery
+    return if exists $flag{-modern};
 
-  return unless $lrdd;
+    # Hostmeta and lrdd
+    $xrd = $c->hostmeta(
+      $host,
+      $header,
+      ['lrdd'],
+      ($secure ? '-secure' : undef)
+    ) or return;
 
-  my $template = $lrdd->attrs('template');
+    # Todo: support header expiration date
+    return if $xrd->expired;
 
-  # template not found
-  return unless $template;
+    # Find 'lrdd' link
+    my $lrdd = _get_lrdd($xrd) or return;
 
-  # Interpolate template
-  $lrdd = $c->endpoint($template => {
-    uri => $nres,
-    '?' => undef
-  });
+    # Retrieve based on lrdd
+    ($xrd, $headers) = $c->get_xrd($lrdd => $header) or return;
+  };
 
-  ($xrd, $headers) = $c->get_xrd($lrdd => $header);
+  # Hook for caching
+  $c->app->plugins->emit_hook(
+    after_fetching_webfinger => (
+      $host, $nres, $xrd, $headers
+    ));
 
-  return unless $xrd;
-
+  # Filter based on relations
   $xrd = $xrd->filter_rel($rel) if $rel;
 
+  # Return
   return ($xrd, $headers) if wantarray;
   return $xrd;
 };
@@ -289,7 +386,7 @@ sub _fetch_webfinger {
 # Serve webfinger
 sub _serve_webfinger {
   my $c = shift;
-  my ($acct, $nres, $res) = @_;
+  my ($xrd, $acct, $nres, $res) = @_;
 
   # No resource given
   $res ||= $nres;
@@ -352,6 +449,24 @@ sub _normalize_resource {
 };
 
 
+# Get lrdd
+sub _get_lrdd {
+  my $xrd = shift;
+
+  # Find 'lrdd' link
+  my $lrdd = $xrd->link('lrdd') or return;
+
+  # Get template
+  my $template = $lrdd->attrs('template') or return;
+
+  # Interpolate template
+  return $c->endpoint($template => {
+    uri => $nres,
+    '?' => undef
+  });
+};
+
+
 1;
 
 
@@ -405,7 +520,9 @@ and works with both XRD and JRD.
   my $xrd = $self->webfinger('acct:me@sojolicio.us', -secure);
 
   # Use lrdd with host and resource description
-  my $xrd = $self->webfinger('sojolicio.us' => 'http://sojolicio.us/me.html', -secure);
+  my $xrd = $self->webfinger(
+    'sojolicio.us' => 'http://sojolicio.us/me.html', -secure
+  );
 
   # Use rel parameters
   my $xrd = $self->webfinger('acct:me@sojolicio.us' => ['describedBy'], -secure);
@@ -481,6 +598,10 @@ validity of the resource is expected.
 A rendered response in the callback will be respected and further
 serving won't be processed.
 
+Data retrieved for the resource can be passed to the stash and
+rendered using the L<before_serving_webfinger|/before_serving_webfinger>
+hook.
+
 The callback can be either set using the
 L<callback helper|Mojolicious::Plugin::Util::Callback/callback>
 or on registration.
@@ -502,6 +623,25 @@ This hook is run before the requested WebFinger document is served.
 The hook passes the current controller object,
 the resource name and the L<XRD|XML::Loy::XRD> object.
 
+=head2 after_fetching_webfinger
+
+  $mojo->hook(
+    after_fetching_webfinger => sub {
+      my ($c, $host, $xrd, $headers) = @_;
+
+      # Store in cache
+      my $chi = $c->chi;
+      $chi->set("hostmeta-$host" => $xrd->to_xml);
+      $chi->set("hostmeta-$host-headers" => $headers->to_string);
+    }
+  );
+
+This hook is run after a foreign host-meta document is newly fetched.
+The parameters passed to the hook are the current controller object,
+the host name, the XRD document as an L<XML::Loy::XRD> object
+and the L<headers|Mojo::Headers> object of the response.
+
+This can be used for caching.
 
 =head1 ROUTES
 
