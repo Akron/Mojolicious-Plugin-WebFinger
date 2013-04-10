@@ -12,6 +12,7 @@ MYMETA*
 Makefile
 pm_to_blib
 t/WebFinger-live.t
+t/WebFinger-live-async.t
 *.tar.gz
 *~
 *.sqlite
