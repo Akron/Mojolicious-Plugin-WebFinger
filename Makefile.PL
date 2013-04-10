@@ -18,7 +18,7 @@ WriteMakefile(
     'Mojolicious' => 3.93,
     'XML::Loy' => 0.15,
     'Mojolicious::Plugin::XRD' => 0.04,
-    'Mojolicious::Plugin::HostMeta' => 0.05,
+    'Mojolicious::Plugin::HostMeta' => 0.06,
     'Mojolicious::Plugin::Util::Endpoint' => 0.13,
     'Mojolicious::Plugin::Util::Callback' => 0.02
   },
