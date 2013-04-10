@@ -82,7 +82,7 @@ as part of the configuration file with the key C<WebFinger>.
     'acct:me@sojolicio.us' => [qw/describedBy author/] => sub {
       my $xrd = shift;
       # ...
-    });
+    } => -modern);
 
   # Serve local WebFinger documents
   my $xrd = $self->webfinger('me');
@@ -92,8 +92,9 @@ Accepts the WebFinger resource, an optional array reference
 of relations, and an optional callback for non-blocking requests.
 The appended flag indicates, how the discovery should be done.
 C<-secure> indicates, that discovery over C<https> only is allowed.
-C<-modern> indicates, that only C</.well-known/host-meta> is discovered.
-C<-old> indicates, that only host-meta and lrdd discovery is used.
+C<-modern> indicates, that only C</.well-known/webfinger> is
+discovered over C<https>.
+C<-old> indicates, that only host-meta and LRDD discovery is used.
 
 
 =head1 CALLBACKS
