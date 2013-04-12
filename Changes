@@ -1,3 +1,7 @@
+0.02 2013-04-12
+	- Added example application.
+	- First release on CPAN.
+
 0.01 2013-04-10
         - Initial release on GitHub.
         - Separated WebFinger from Sojolicious.

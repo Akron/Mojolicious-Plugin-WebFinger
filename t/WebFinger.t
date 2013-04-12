@@ -47,7 +47,7 @@ app->callback(
 $app->hook(
   before_serving_webfinger =>
     sub {
-      my ($c, $xrd, $norm) = @_;
+      my ($c, $norm, $xrd) = @_;
 
       if ($norm eq $acct) {
 	$xrd->link('http://microformats.org/profile/hcard' => {
@@ -106,18 +106,19 @@ $t->get_ok('/.well-known/webfinger?resource=nothing')
 $app->callback(
   prepare_webfinger => sub {
     my ($c, $acct) = @_;
-    return 1 if lc $acct eq 'acct:akron@sojolicio.us';
+    return 1 if lc $acct eq 'acct:akron@webfing.er';
   });
 
 $app->hook(
   before_serving_webfinger => sub {
-    my ($c, $xrd, $acct) = @_;
-    if (lc $acct eq 'acct:akron@sojolicio.us') {
+    my ($c, $acct, $xrd) = @_;
+
+    if (lc $acct eq 'acct:akron@webfing.er') {
       $xrd->link(author => 'Nils Diewald');
     };
   });
 
-$acct = 'akron@sojolicio.us';
+$acct = 'akron@webfing.er';
 
 $t->get_ok('/.well-known/webfinger?resource='.b($acct)->url_escape)
   ->status_is('200')

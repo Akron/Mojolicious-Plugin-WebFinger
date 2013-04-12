@@ -3,20 +3,21 @@ use Mojo::Base 'Mojolicious::Plugin';
 use Mojo::Util 'url_escape';
 use Mojo::URL;
 
-# This is a modern version of WebFinger
-# without using LRDD
-
-our $VERSION = 0.01;
-
 # Todo:
 # See https://github.com/evanp/webfinger
 
+
+our $VERSION = 0.01;
+
+
 my $WK_PATH = '/.well-known/webfinger';
+
 
 # Register Plugin
 sub register {
   my ($plugin, $mojo, $param) = @_;
 
+  # Plugin parameter
   $param ||= {};
 
   # Load parameter from Config file
@@ -86,30 +87,35 @@ sub register {
       # Bad request - no resource defined
       return $c->render(status => 400) unless $nres;
 
-      my $xrd = $c->new_xrd;
-
       # Check for 'prepare_webfinger' callback
       if ($c->callback(prepare_webfinger => $nres)) {
 
 	# The response body is already rendered
 	return if $c->res->body;
 
+	# Create new xrd document
 	my $xrd = _serve_webfinger($c, $acct, $nres, $res);
 
 	# Seconds given
-	if ($xrd && $seconds) {
+	if ($xrd) {
 
-	  # Set cache control
-	  my $headers = $c->res->headers;
-	  $headers->cache_control(
-	    "public, max-age=$seconds"
-	  );
+	  my $expires;
+	  unless ($expires = $xrd->expires && $seconds) {
+	    $expires = $xrd->expires( time + $seconds);
+	  };
 
-	  # Set expires element
-	  $xrd->expires( time + $seconds );
+	  # Expires set
+	  if ($expires) {
 
-	  # Set expires header
-	  $xrd->expires( $xrd->expires );
+	    # Set cache control
+	    my $headers = $c->res->headers;
+	    $headers->cache_control(
+	      "public, max-age=$seconds"
+	    );
+
+	    # Set expires header
+	    $headers->expires( $xrd->expires );
+	  };
 	};
 
 	# Server xrd document
@@ -199,12 +205,21 @@ sub _fetch_webfinger {
   # If local, serve local
   if (!$host ||
 	($host eq ($c->req->url->base->host || 'localhost'))) {
-    my $xrd = _serve_webfinger($c, $acct, $nres, $res);
 
-    # Return values
-    return $cb ? $cb->($xrd, Mojo::Headers->new) : (
-      wantarray ? ($xrd, Mojo::Headers->new) : $xrd
-    );
+    if ($c->callback(prepare_webfinger => $nres)) {
+
+
+      # Serve local xrd document
+      my $xrd = _serve_webfinger($c, $acct, $nres, $res);
+
+      # Return values
+      return $cb ? $cb->($xrd, Mojo::Headers->new) : (
+	wantarray ? ($xrd, Mojo::Headers->new) : $xrd
+      );
+    }
+    else {
+      return $cb ? $cb->() : undef;
+    }
   };
 
   # Check cache
@@ -218,7 +233,9 @@ sub _fetch_webfinger {
   # Delete resource
   $nres =~ s/^acct://;
 
+  # xrd document exists
   if ($xrd) {
+
     # Filter relations
     $xrd = $xrd->filter_rel( $rel ) if $rel;
 
@@ -233,9 +250,7 @@ sub _fetch_webfinger {
   };
 
   # Not found
-  unless ($host && $res) {
-    return $cb ? $cb->() : undef;
-  };
+  return ($cb ? $cb->() : undef) unless $host && $res;
 
   # Set secure value
   my $secure;
@@ -276,7 +291,7 @@ sub _fetch_webfinger {
 	    # Hook for caching
 	    $c->app->plugins->emit_hook(
 	      after_fetching_webfinger => (
-		$host, $nres, $xrd, $headers
+		$c, $host, $res, $xrd, $headers
 	      ));
 
 	    # Filter based on relations
@@ -338,7 +353,7 @@ sub _fetch_webfinger {
 	# Hook for caching
 	$c->app->plugins->emit_hook(
 	  after_fetching_webfinger => (
-	    $host, $nres, $xrd, $headers
+	    $c, $host, $res, $xrd, $headers
 	  ));
 
 	# Filter based on relations
@@ -397,7 +412,7 @@ sub _fetch_webfinger {
   # Hook for caching
   $c->app->plugins->emit_hook(
     after_fetching_webfinger => (
-      $host, $nres, $xrd, $headers
+      $c, $host, $res, $xrd, $headers
     ));
 
   # Filter based on relations
@@ -413,6 +428,9 @@ sub _serve_webfinger {
   my $c = shift;
   my ($acct, $nres, $res) = @_;
 
+  # No normalized resource
+  return unless $nres;
+
   # No resource given
   $res ||= $nres;
 
@@ -427,7 +445,7 @@ sub _serve_webfinger {
 
   # Run hook
   $c->app->plugins->emit_hook(
-    before_serving_webfinger => ($c, $xrd, $nres)
+    before_serving_webfinger => ($c, $nres, $xrd)
   );
 
   # Filter relations
@@ -441,6 +459,7 @@ sub _serve_webfinger {
 # Normalize resource
 sub _normalize_resource {
   my ($c, $res) = @_;
+  return unless $res;
 
   # Resource is qualified
   if (index($res, 'acct:') != 0 and $res =~ /^[^:]+:/) {
@@ -601,10 +620,10 @@ C<-old> indicates, that only host-meta and LRDD discovery is used.
       my $doc = $c->chi->get("webfinger-$host-$res");
       return unless $doc;
 
-      my $header = $c->chi->get("webfinger-$host-$res-headers");
+      my $headers = $c->chi->get("webfinger-$host-$res-headers");
 
       # Return document
-      return ($c->new_xrd($doc), Mojo::Headers->new->parse($header));
+      return ($c->new_xrd($doc), Mojo::Headers->new->parse($headers));
     }
   );
 
@@ -627,8 +646,8 @@ This can be used for caching.
 =head2 prepare_webfinger
 
   if ($c->callback(prepare_webfinger => sub {
-    my ($c, $resource) = @_;
-    if ($resource eq 'acct:akron@sojolicio.us') {
+    my ($c, $res) = @_;
+    if ($res eq 'acct:akron@sojolicio.us') {
       $c->stash('profile' => 'http://sojolicio.us/user/akron');
       return 1;
     };
@@ -636,7 +655,7 @@ This can be used for caching.
     print 'The requested resource exists!';
   };
 
-This callback is triggered before a webfinger document is served.
+This callback is triggered before a WebFinger document is served.
 The requested resource is passed. A boolean value indicating the
 validity of the resource is expected.
 A rendered response in the callback will be respected and further
@@ -667,6 +686,7 @@ This hook is run before the requested WebFinger document is served.
 The hook passes the current controller object,
 the resource name and the L<XRD|XML::Loy::XRD> object.
 
+
 =head2 after_fetching_webfinger
 
   $mojo->hook(
@@ -675,7 +695,7 @@ the resource name and the L<XRD|XML::Loy::XRD> object.
 
       # Store in cache
       my $chi = $c->chi;
-      $chi->set("webfinger-$host-$res" => $xrd->to_xml);
+      $chi->set("webfinger-$host-$res" => $xrd->to_pretty_xml);
       $chi->set("webfinger-$host-$res-headers" => $headers->to_string);
     }
   );
@@ -707,9 +727,17 @@ L<Mojolicious::Plugin::Util::Endpoint>,
 L<Mojolicious::Plugin::Util::Callback>.
 
 
+=head1 KNOWN BUGS AND LIMITATIONS
+
+The sequence order of the XRD is currently not correct.
+This will soon be fixed in L<XML::Loy::XRD>.
+
+
 =head1 AVAILABILITY
 
   https://github.com/Akron/Mojolicious-Plugin-WebFinger
+
+This plugin is part of the L<Sojolicious|http://sojolicio.us> project.
 
 
 =head1 COPYRIGHT AND LICENSE

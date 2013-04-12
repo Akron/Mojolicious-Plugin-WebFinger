@@ -109,10 +109,10 @@ C<-old> indicates, that only host-meta and LRDD discovery is used.
       my $doc = $c->chi->get("webfinger-$host-$res");
       return unless $doc;
 
-      my $header = $c->chi->get("webfinger-$host-$res-headers");
+      my $headers = $c->chi->get("webfinger-$host-$res-headers");
 
       # Return document
-      return ($c->new_xrd($doc), Mojo::Headers->new->parse($header));
+      return ($c->new_xrd($doc), Mojo::Headers->new->parse($headers));
     }
   );
 
@@ -135,8 +135,8 @@ This can be used for caching.
 =head2 prepare_webfinger
 
   if ($c->callback(prepare_webfinger => sub {
-    my ($c, $resource) = @_;
-    if ($resource eq 'acct:akron@sojolicio.us') {
+    my ($c, $res) = @_;
+    if ($res eq 'acct:akron@sojolicio.us') {
       $c->stash('profile' => 'http://sojolicio.us/user/akron');
       return 1;
     };
@@ -144,7 +144,7 @@ This can be used for caching.
     print 'The requested resource exists!';
   };
 
-This callback is triggered before a webfinger document is served.
+This callback is triggered before a WebFinger document is served.
 The requested resource is passed. A boolean value indicating the
 validity of the resource is expected.
 A rendered response in the callback will be respected and further
@@ -175,6 +175,7 @@ This hook is run before the requested WebFinger document is served.
 The hook passes the current controller object,
 the resource name and the L<XRD|XML::Loy::XRD> object.
 
+
 =head2 after_fetching_webfinger
 
   $mojo->hook(
@@ -183,7 +184,7 @@ the resource name and the L<XRD|XML::Loy::XRD> object.
 
       # Store in cache
       my $chi = $c->chi;
-      $chi->set("webfinger-$host-$res" => $xrd->to_xml);
+      $chi->set("webfinger-$host-$res" => $xrd->to_pretty_xml);
       $chi->set("webfinger-$host-$res-headers" => $headers->to_string);
     }
   );
@@ -215,9 +216,17 @@ L<Mojolicious::Plugin::Util::Endpoint>,
 L<Mojolicious::Plugin::Util::Callback>.
 
 
+=head1 KNOWN BUGS AND LIMITATIONS
+
+The sequence order of the XRD is currently not correct.
+This will soon be fixed in L<XML::Loy::XRD>.
+
+
 =head1 AVAILABILITY
 
   https://github.com/Akron/Mojolicious-Plugin-WebFinger
+
+This plugin is part of the L<Sojolicious|http://sojolicio.us> project.
 
 
 =head1 COPYRIGHT AND LICENSE
