@@ -287,9 +287,11 @@ sub _fetch_webfinger {
 
 warn '+1++ ' . $c->req;
 
+warn 'Header: ' . $header;
+
 	  # Retrieve from modern path
 	  $c->get_xrd(
-	    $path => $header => $delay->begin(0)
+	    $path => $header => $delay->begin
 	  );
 	},
 
@@ -323,6 +325,8 @@ warn '+2++ ' . $c->req;
 	});
     };
 
+warn 'Found: ' . @delay;
+
     # Old host-meta discovery
     push(
       @delay,
@@ -333,13 +337,15 @@ warn '+2++ ' . $c->req;
 
 warn '+3++ ' . $c->req;
 
+warn 'Header: ' . $header;
+
 	# Host-meta with lrdd
 	$c->hostmeta(
 	  $host,
 	  $header,
 	  ['lrdd'],
 	  ($secure ? '-secure' : undef),
-	  $delay->begin(0)
+	  $delay->begin
 	);
       },
 

@@ -22,9 +22,15 @@
 
 use Mojolicious::Lite;
 
-use lib '../lib';
+use lib 'lib', '../lib';
 
 use CHI;
+
+BEGIN {
+  $ENV{MOJO_USERAGENT_DEBUG} = 1;
+  $ENV{MOJO_IOLOOP_DEBUG} = 1;
+warn '+++++++++++';
+};
 
 plugin 'WebFinger';
 
@@ -32,6 +38,8 @@ plugin 'WebFinger';
 app->defaults(
   title => 'WebFinger Demo'
 );
+
+app->log->level('debug');
 
 # Check for existence
 app->callback(prepare_webfinger => sub {
@@ -59,18 +67,20 @@ get '/' => sub {
   my $c = shift;
   my $acct = $c->param('acct');
   if ($acct)  {
-warn $c->req;
+warn 'xxx ' . $c->req;
     return $c->webfinger(
       $acct => sub {
 	my $xrd = shift;
 
-warn '****' . $c;
+warn 'uuuu ' . $c;
 
 	$c->stash(xrd => $xrd ? $xrd->to_pretty_xml : '[WebFinger not found]');
 	return $c->render(template => 'index');
     });
+  }
+  else {
+    return $c->render(template => 'index');
   };
-  return $c->render(template => 'index');
 } => 'index';
 
 
@@ -89,7 +99,7 @@ post '/' => sub {
       $acct => sub {
 	my $xrd = shift;
 
-warn $c->req;
+warn 'Inapp: ' . $c->req;
 
 	if ($xrd) {
 	  # Check formatting
