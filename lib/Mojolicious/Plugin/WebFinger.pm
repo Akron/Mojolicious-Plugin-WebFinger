@@ -7,7 +7,7 @@ use Mojo::URL;
 # See https://github.com/evanp/webfinger
 
 
-our $VERSION = 0.01;
+our $VERSION = 0.02;
 
 
 my $WK_PATH = '/.well-known/webfinger';

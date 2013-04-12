@@ -15,7 +15,7 @@ WriteMakefile(
     'Test::More' => 0
   },
   PREREQ_PM => {
-    'Mojolicious' => 3.93,
+    'Mojolicious' => 3.94,
     'XML::Loy' => 0.15,
     'Mojolicious::Plugin::XRD' => 0.04,
     'Mojolicious::Plugin::HostMeta' => 0.06,
