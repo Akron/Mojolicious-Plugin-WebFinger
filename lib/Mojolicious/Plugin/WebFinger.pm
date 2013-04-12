@@ -719,6 +719,19 @@ the specification, and different forms for the resource definition,
 this is assumed to be a future-proof best practice.
 
 
+=head1 EXAMPLE
+
+The C<examples/> folder contains a full working example application
+with serving and discovery.
+The example has an additional dependency of L<CHI>.
+
+It can be started using the daemon, morbo or hypnotoad.
+
+  $ perl examples/webfingerapp daemon
+
+This example may be a good starting point for your own implementation.
+
+
 =head1 DEPENDENCIES
 
 L<Mojolicious> (best with SSL support),
