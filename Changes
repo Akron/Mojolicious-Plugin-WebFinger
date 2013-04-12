@@ -1,5 +1,6 @@
 0.02 2013-04-12
 	- Added example application.
+	- Added secure flag to register.
 	- First release on CPAN.
 
 0.01 2013-04-10

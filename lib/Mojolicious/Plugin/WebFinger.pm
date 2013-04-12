@@ -4,14 +4,13 @@ use Mojo::Util 'url_escape';
 use Mojo::URL;
 
 # Todo:
-# See https://github.com/evanp/webfinger
-
+# - See https://github.com/evanp/webfinger
+# - Make callback non-blocking aware
 
 our $VERSION = 0.02;
 
 
 my $WK_PATH = '/.well-known/webfinger';
-
 
 # Register Plugin
 sub register {
@@ -62,6 +61,13 @@ sub register {
   $wfr->to(
     cb => sub {
       my $c = shift;
+
+      # Check for security
+      if ($param->{secure} && !$c->req->is_secure) {
+
+	# Bad request - no resource defined
+	return $c->render(status => 400);
+      };
 
       # Get resource parameter
       my $res = $c->param('resource');
@@ -274,16 +280,24 @@ sub _fetch_webfinger {
       # push to delay array
       push(
 	@delay,
+
+	# Step 1
 	sub {
 	  my $delay = shift;
+
+warn '+1++ ' . $c->req;
 
 	  # Retrieve from modern path
 	  $c->get_xrd(
 	    $path => $header => $delay->begin(0)
 	  );
 	},
+
+	# Step 2
 	sub {
 	  my ($delay, $xrd, $headers) = @_;
+
+warn '+2++ ' . $c->req;
 
 	  # Document found
 	  if ($xrd) {
@@ -312,8 +326,12 @@ sub _fetch_webfinger {
     # Old host-meta discovery
     push(
       @delay,
+
+      # Step 3
       sub {
 	my $delay = shift;
+
+warn '+3++ ' . $c->req;
 
 	# Host-meta with lrdd
 	$c->hostmeta(
@@ -324,9 +342,13 @@ sub _fetch_webfinger {
 	  $delay->begin(0)
 	);
       },
+
+      # Step 4
       sub {
         # Hostmeta document
 	my ($delay, $xrd) = @_;
+
+warn '+4++ ' . $c->req;
 
 	# Hostmeta is expired
 	return $cb->() if $xrd->expired;
@@ -343,9 +365,13 @@ sub _fetch_webfinger {
 	# Get lrdd
 	$c->get_xrd($lrdd => $header => $delay->begin(0))
       },
+
+      # Step 5
       sub {
 	my $delay = shift;
 	my ($xrd, $headers) = @_;
+
+warn '+5++ ' . $c->req;
 
 	# No lrdd xrd document found
 	return $cb->() unless $xrd;
@@ -368,8 +394,13 @@ sub _fetch_webfinger {
 
     # Start IOLoop if not running
     $delay->wait unless Mojo::IOLoop->is_running;
+
+warn '++++ ' . $c->req;
+
     return;
   };
+
+warn '//// ' . $c->req;
 
   # Blocking
   # Modern discovery
@@ -400,10 +431,11 @@ sub _fetch_webfinger {
     my $template = _get_lrdd($xrd) or return;
 
     # Interpolate template
-    my $lrdd = $c->endpoint($template => {
-      uri => $nres,
-      '?' => undef
-    });
+    my $lrdd = $c->endpoint(
+      $template => {
+	uri => $nres,
+	'?' => undef
+      });
 
     # Retrieve based on lrdd
     ($xrd, $headers) = $c->get_xrd($lrdd => $header) or return;
@@ -550,21 +582,23 @@ B<This module is an early release! There may be significant changes in the futur
 
 =head1 METHODS
 
-=head2 C<register>
+=head2 register
 
   # Mojolicious
   $app->plugin(WebFinger => {
-    expires => 100
+    expires => 100,
+    secure  => 1
   });
 
   # Mojolicious::Lite
   plugin 'WebFinger';
 
 Called when registering the plugin.
-Accepts one optional parameter C<expires>, which is the number
-of seconds the served WebFinger should be cached by the fetching client.
-Defaults to 10 days.
-This parameter can be set either on registration or
+Accepts the optional parameters C<secure>, which is a boolean value
+which indicates that only secure transactions are allowed,
+and C<expires>, which is the number of seconds the served WebFinger
+document should be cached by the fetching client (defaults to 10 days).
+These parameters can be either set on registration or
 as part of the configuration file with the key C<WebFinger>.
 
 
@@ -617,9 +651,11 @@ C<-old> indicates, that only host-meta and LRDD discovery is used.
     fetch_webfinger=> sub {
       my ($c, $host, $res, $header) = @_;
 
+      # Get cached document
       my $doc = $c->chi->get("webfinger-$host-$res");
       return unless $doc;
 
+      # Get cached headers
       my $headers = $c->chi->get("webfinger-$host-$res-headers");
 
       # Return document
@@ -642,6 +678,7 @@ helper or on registration.
 
 This can be used for caching.
 
+Callbacks may be changed for non-blocking requests.
 
 =head2 prepare_webfinger
 
@@ -669,6 +706,8 @@ The callback can be either set using the
 L<callback helper|Mojolicious::Plugin::Util::Callback/callback>
 or on registration.
 
+Callbacks may be changed for non-blocking requests.
+
 
 =head1 HOOKS
 
@@ -693,10 +732,11 @@ the resource name and the L<XRD|XML::Loy::XRD> object.
     after_fetching_webfinger => sub {
       my ($c, $host, $res, $xrd, $headers) = @_;
 
-      # Store in cache
-      my $chi = $c->chi;
-      $chi->set("webfinger-$host-$res" => $xrd->to_pretty_xml);
-      $chi->set("webfinger-$host-$res-headers" => $headers->to_string);
+      # Store document in cache
+      $c->chi->set("webfinger-$host-$res" => $xrd->to_pretty_xml);
+
+      # Store headers in cache
+      $c->chi->set("webfinger-$host-$res-headers" => $headers->to_string);
     }
   );
 
@@ -735,15 +775,7 @@ This example may be a good starting point for your own implementation.
 =head1 DEPENDENCIES
 
 L<Mojolicious> (best with SSL support),
-L<Mojolicious::Plugin::HostMeta>,
-L<Mojolicious::Plugin::Util::Endpoint>,
-L<Mojolicious::Plugin::Util::Callback>.
-
-
-=head1 KNOWN BUGS AND LIMITATIONS
-
-The sequence order of the XRD is currently not correct.
-This will soon be fixed in L<XML::Loy::XRD>.
+L<Mojolicious::Plugin::HostMeta>.
 
 
 =head1 AVAILABILITY
