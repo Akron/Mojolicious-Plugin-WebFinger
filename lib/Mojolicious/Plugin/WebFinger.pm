@@ -4,10 +4,9 @@ use Mojo::Util 'url_escape';
 use Mojo::URL;
 
 # Todo:
-# - See https://github.com/evanp/webfinger
 # - Make callback non-blocking aware
 
-our $VERSION = 0.02;
+our $VERSION = 0.03;
 
 
 my $WK_PATH = '/.well-known/webfinger';
@@ -65,7 +64,7 @@ sub register {
       # Check for security
       if ($param->{secure} && !$c->req->is_secure) {
 
-	# Bad request - no resource defined
+	# Bad request - only https allowed!
 	return $c->render(status => 400);
       };
 
@@ -185,6 +184,9 @@ sub _fetch_webfinger {
     ($acct, $host, $nres) = _normalize_resource($c, $res);
   };
 
+  # Trim tail
+  pop while @_ && !defined $_[-1];
+
   # Get flags
   my %flag;
   while (defined $_[-1] && index($_[-1], '-') == 0) {
@@ -285,10 +287,6 @@ sub _fetch_webfinger {
 	sub {
 	  my $delay = shift;
 
-warn '+1++ ' . $c->req;
-
-warn 'Header: ' . $header;
-
 	  # Retrieve from modern path
 	  $c->get_xrd(
 	    $path => $header => $delay->begin
@@ -298,8 +296,6 @@ warn 'Header: ' . $header;
 	# Step 2
 	sub {
 	  my ($delay, $xrd, $headers) = @_;
-
-warn '+2++ ' . $c->req;
 
 	  # Document found
 	  if ($xrd) {
@@ -325,8 +321,6 @@ warn '+2++ ' . $c->req;
 	});
     };
 
-warn 'Found: ' . @delay;
-
     # Old host-meta discovery
     push(
       @delay,
@@ -335,18 +329,19 @@ warn 'Found: ' . @delay;
       sub {
 	my $delay = shift;
 
-warn '+3++ ' . $c->req;
+	# Todo: Change this to ($secure ? '-secure' : undef) for hostmeta 0.10
 
-warn 'Header: ' . $header;
-
-	# Host-meta with lrdd
-	$c->hostmeta(
+	my @param = (
 	  $host,
 	  $header,
 	  ['lrdd'],
-	  ($secure ? '-secure' : undef),
-	  $delay->begin
+	  $delay->begin(0)
 	);
+
+	push @param, '-secure' if $secure;
+
+	# Host-meta with lrdd
+	$c->hostmeta( @param );
       },
 
       # Step 4
@@ -354,10 +349,8 @@ warn 'Header: ' . $header;
         # Hostmeta document
 	my ($delay, $xrd) = @_;
 
-warn '+4++ ' . $c->req;
-
 	# Hostmeta is expired
-	return $cb->() if $xrd->expired;
+	return $cb->() if !$xrd || !$xrd->can('expired') || $xrd->expired;
 
 	# Prepare lrdd
 	my $template = _get_lrdd($xrd) or return $cb->();
@@ -376,8 +369,6 @@ warn '+4++ ' . $c->req;
       sub {
 	my $delay = shift;
 	my ($xrd, $headers) = @_;
-
-warn '+5++ ' . $c->req;
 
 	# No lrdd xrd document found
 	return $cb->() unless $xrd;
@@ -401,12 +392,8 @@ warn '+5++ ' . $c->req;
     # Start IOLoop if not running
     $delay->wait unless Mojo::IOLoop->is_running;
 
-warn '++++ ' . $c->req;
-
     return;
   };
-
-warn '//// ' . $c->req;
 
   # Blocking
   # Modern discovery
@@ -776,6 +763,12 @@ It can be started using the daemon, morbo or hypnotoad.
   $ perl examples/webfingerapp daemon
 
 This example may be a good starting point for your own implementation.
+
+A less advanced application using non-blocking requests without caching
+is also available in the C<examples/> folder. It can be started using
+the daemon, morbo or hypnotoad as well.
+
+  $ perl examples/webfingerapp-async daemon
 
 
 =head1 DEPENDENCIES

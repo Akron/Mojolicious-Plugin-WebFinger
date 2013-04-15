@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+Hihi#!/usr/bin/env perl
 # This is a WebFinger server and discoverer
 # for Mojolicious::Plugin::WebFinger
 #
@@ -22,7 +22,7 @@
 
 use Mojolicious::Lite;
 
-use lib '../lib';
+use lib 'lib', '../lib';
 
 use CHI;
 
@@ -102,12 +102,7 @@ get '/' => sub {
   my $acct = $c->param('acct');
   if ($acct)  {
     my $wf = $c->webfinger($acct);
-    if ($wf) {
-      $c->stash(xrd => $wf->to_pretty_xml);
-    }
-    else {
-      $c->stash(xrd => '[WebFinger not found]');
-    };
+    $c->stash(xrd => $wf ? $wf->to_pretty_xml : '[WebFinger not found]');
   };
   $c->render(template => 'index');
 } => 'index';
@@ -124,7 +119,7 @@ post '/' => sub {
     # Check formatting
     my $rv = $c->param('submit') &&
       $c->param('submit') eq 'json' ? $wf->to_json : $wf->to_pretty_xml;
-    $c->flash(xrd => $rv ) if $wf;
+    $c->flash(xrd => $rv);
   }
 
   # WebFinger was not found

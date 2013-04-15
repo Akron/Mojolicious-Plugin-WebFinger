@@ -2,13 +2,9 @@
 # This is a WebFinger server and discoverer
 # for Mojolicious::Plugin::WebFinger
 #
-# Prerequisites:
-#
-#  - CHI
-#
 # You can run the app by starting the server with
 #
-#  $ webfingerapp daemon
+#  $ webfingerapp-async daemon
 #
 # or by using either morbo or hypnotoad.
 #
@@ -24,14 +20,6 @@ use Mojolicious::Lite;
 
 use lib 'lib', '../lib';
 
-use CHI;
-
-BEGIN {
-  $ENV{MOJO_USERAGENT_DEBUG} = 1;
-  $ENV{MOJO_IOLOOP_DEBUG} = 1;
-warn '+++++++++++';
-};
-
 plugin 'WebFinger';
 
 # Default varianles
@@ -39,7 +27,6 @@ app->defaults(
   title => 'WebFinger Demo'
 );
 
-app->log->level('debug');
 
 # Check for existence
 app->callback(prepare_webfinger => sub {
@@ -67,16 +54,17 @@ get '/' => sub {
   my $c = shift;
   my $acct = $c->param('acct');
   if ($acct)  {
-warn 'xxx ' . $c->req;
+
+    # Asynchronous rendering
+    $c->render_later;
+
     return $c->webfinger(
       $acct => sub {
 	my $xrd = shift;
 
-warn 'uuuu ' . $c;
-
 	$c->stash(xrd => $xrd ? $xrd->to_pretty_xml : '[WebFinger not found]');
 	return $c->render(template => 'index');
-    });
+      });
   }
   else {
     return $c->render(template => 'index');
@@ -95,11 +83,12 @@ post '/' => sub {
     # Add finger information for further retrieval
     $c->flash(acct => $acct);
 
+    # Asynchronous rendering
+    $c->render_later;
+
     $c->webfinger(
       $acct => sub {
 	my $xrd = shift;
-
-warn 'Inapp: ' . $c->req;
 
 	if ($xrd) {
 	  # Check formatting
@@ -122,6 +111,7 @@ warn 'Inapp: ' . $c->req;
 
   # WebFinger was not found
   else {
+
     # Return to index
     return $c->redirect_to('index');
   };

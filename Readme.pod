@@ -39,21 +39,23 @@ B<This module is an early release! There may be significant changes in the futur
 
 =head1 METHODS
 
-=head2 C<register>
+=head2 register
 
   # Mojolicious
   $app->plugin(WebFinger => {
-    expires => 100
+    expires => 100,
+    secure  => 1
   });
 
   # Mojolicious::Lite
   plugin 'WebFinger';
 
 Called when registering the plugin.
-Accepts one optional parameter C<expires>, which is the number
-of seconds the served WebFinger should be cached by the fetching client.
-Defaults to 10 days.
-This parameter can be set either on registration or
+Accepts the optional parameters C<secure>, which is a boolean value
+which indicates that only secure transactions are allowed,
+and C<expires>, which is the number of seconds the served WebFinger
+document should be cached by the fetching client (defaults to 10 days).
+These parameters can be either set on registration or
 as part of the configuration file with the key C<WebFinger>.
 
 
@@ -106,9 +108,11 @@ C<-old> indicates, that only host-meta and LRDD discovery is used.
     fetch_webfinger=> sub {
       my ($c, $host, $res, $header) = @_;
 
+      # Get cached document
       my $doc = $c->chi->get("webfinger-$host-$res");
       return unless $doc;
 
+      # Get cached headers
       my $headers = $c->chi->get("webfinger-$host-$res-headers");
 
       # Return document
@@ -131,6 +135,7 @@ helper or on registration.
 
 This can be used for caching.
 
+Callbacks may be changed for non-blocking requests.
 
 =head2 prepare_webfinger
 
@@ -158,6 +163,8 @@ The callback can be either set using the
 L<callback helper|Mojolicious::Plugin::Util::Callback/callback>
 or on registration.
 
+Callbacks may be changed for non-blocking requests.
+
 
 =head1 HOOKS
 
@@ -182,10 +189,11 @@ the resource name and the L<XRD|XML::Loy::XRD> object.
     after_fetching_webfinger => sub {
       my ($c, $host, $res, $xrd, $headers) = @_;
 
-      # Store in cache
-      my $chi = $c->chi;
-      $chi->set("webfinger-$host-$res" => $xrd->to_pretty_xml);
-      $chi->set("webfinger-$host-$res-headers" => $headers->to_string);
+      # Store document in cache
+      $c->chi->set("webfinger-$host-$res" => $xrd->to_pretty_xml);
+
+      # Store headers in cache
+      $c->chi->set("webfinger-$host-$res-headers" => $headers->to_string);
     }
   );
 
@@ -208,18 +216,29 @@ the specification, and different forms for the resource definition,
 this is assumed to be a future-proof best practice.
 
 
+=head1 EXAMPLE
+
+The C<examples/> folder contains a full working example application
+with serving and discovery.
+The example has an additional dependency of L<CHI>.
+
+It can be started using the daemon, morbo or hypnotoad.
+
+  $ perl examples/webfingerapp daemon
+
+This example may be a good starting point for your own implementation.
+
+A less advanced application using non-blocking requests without caching
+is also available in the C<examples/> folder. It can be started using
+the daemon, morbo or hypnotoad as well.
+
+  $ perl examples/webfingerapp-async daemon
+
+
 =head1 DEPENDENCIES
 
 L<Mojolicious> (best with SSL support),
-L<Mojolicious::Plugin::HostMeta>,
-L<Mojolicious::Plugin::Util::Endpoint>,
-L<Mojolicious::Plugin::Util::Callback>.
-
-
-=head1 KNOWN BUGS AND LIMITATIONS
-
-The sequence order of the XRD is currently not correct.
-This will soon be fixed in L<XML::Loy::XRD>.
+L<Mojolicious::Plugin::HostMeta>.
 
 
 =head1 AVAILABILITY

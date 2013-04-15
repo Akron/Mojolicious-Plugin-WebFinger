@@ -1,7 +1,11 @@
+0.03 2013-04-15
+        - Added async example.
+	- First release on CPAN.
+	- Trim tail of undefined values.
+
 0.02 2013-04-12
 	- Added example application.
 	- Added secure flag to register.
-	- First release on CPAN.
 
 0.01 2013-04-10
         - Initial release on GitHub.
