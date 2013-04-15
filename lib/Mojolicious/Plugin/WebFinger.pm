@@ -350,7 +350,7 @@ sub _fetch_webfinger {
 	my ($delay, $xrd) = @_;
 
 	# Hostmeta is expired
-	return $cb->() if !$xrd || !$xrd->can('expired') || $xrd->expired;
+	return $cb->() if !$xrd || $xrd->expired;
 
 	# Prepare lrdd
 	my $template = _get_lrdd($xrd) or return $cb->();
@@ -625,14 +625,15 @@ as part of the configuration file with the key C<WebFinger>.
   # Serve local WebFinger documents
   my $xrd = $self->webfinger('me');
 
-Returns the WebFinger resource as a L<XML::Loy::XRD> document.
+Returns the WebFinger resource as an L<XRD|XML::Loy::XRD> object.
 Accepts the WebFinger resource, an optional array reference
 of relations, and an optional callback for non-blocking requests.
 The appended flag indicates, how the discovery should be done.
-C<-secure> indicates, that discovery over C<https> only is allowed.
+C<-secure> indicates, that discovery is allowed only over C<https>.
 C<-modern> indicates, that only C</.well-known/webfinger> is
 discovered over C<https>.
-C<-old> indicates, that only host-meta and LRDD discovery is used.
+C<-old> indicates, that only L<Host-Meta|Mojolicious::Plugin::HostMeta>
+and lrdd discovery is used.
 
 
 =head1 CALLBACKS
@@ -661,17 +662,17 @@ is retrieved from a foreign server. The parameters passed to the
 callback include the current controller object, the host's
 name and the resource name.
 
-If a L<XML::Loy::XRD> document associated with the requested
+If an L<XRD|XML::Loy::XRD> object associated with the requested
 host name is returned (and optionally a L<Mojo::Headers> object),
 the retrieval will stop.
+
+This can be used for caching.
 
 The callback can be established with the
 L<callback|Mojolicious::Plugin::Util::Callback/callback>
 helper or on registration.
-
-This can be used for caching.
-
 Callbacks may be changed for non-blocking requests.
+
 
 =head2 prepare_webfinger
 
@@ -686,7 +687,8 @@ Callbacks may be changed for non-blocking requests.
   };
 
 This callback is triggered before a WebFinger document is served.
-The requested resource is passed. A boolean value indicating the
+The current controller object and the requested resource is passed.
+A boolean value indicating the
 validity of the resource is expected.
 A rendered response in the callback will be respected and further
 serving won't be processed.
@@ -698,7 +700,6 @@ hook.
 The callback can be either set using the
 L<callback helper|Mojolicious::Plugin::Util::Callback/callback>
 or on registration.
-
 Callbacks may be changed for non-blocking requests.
 
 
@@ -747,8 +748,8 @@ The route C</.well-known/webfinger> is established as the
 lrdd L<endpoint|Mojolicious::Plugin::Util::Endpoint> C<webfinger>.
 This plugin depends on this route,
 and the C<resource> and C<rel> attributes. Although other
-routes are possible for webfinger/lrdd in older drafts of
-the specification, and different forms for the resource definition,
+routes are possible for WebFinger/lrdd in older drafts of
+the specification and different forms for the resource definition,
 this is assumed to be a future-proof best practice.
 
 
@@ -757,7 +758,6 @@ this is assumed to be a future-proof best practice.
 The C<examples/> folder contains a full working example application
 with serving and discovery.
 The example has an additional dependency of L<CHI>.
-
 It can be started using the daemon, morbo or hypnotoad.
 
   $ perl examples/webfingerapp daemon
