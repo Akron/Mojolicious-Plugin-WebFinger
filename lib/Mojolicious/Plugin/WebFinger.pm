@@ -132,7 +132,7 @@ sub register {
     }
   );
 
-  # Add Route to Hostmeta - exactly once
+  # Add Route to Host-Meta - exactly once
   $mojo->hook(
     prepare_hostmeta => sub {
       my ($c, $hostmeta) = @_;
@@ -321,7 +321,7 @@ sub _fetch_webfinger {
 	});
     };
 
-    # Old host-meta discovery
+    # Old Host-Meta discovery
     push(
       @delay,
 
@@ -340,16 +340,16 @@ sub _fetch_webfinger {
 
 	push @param, '-secure' if $secure;
 
-	# Host-meta with lrdd
+	# Host-Meta with lrdd
 	$c->hostmeta( @param );
       },
 
       # Step 4
       sub {
-        # Hostmeta document
+        # Host-Meta document
 	my ($delay, $xrd) = @_;
 
-	# Hostmeta is expired
+	# Host-Meta is expired
 	return $cb->() if !$xrd || $xrd->expired;
 
 	# Prepare lrdd
@@ -409,7 +409,7 @@ sub _fetch_webfinger {
     # No further discovery
     return if exists $flag{-modern};
 
-    # Hostmeta and lrdd
+    # Host-Meta and lrdd
     $xrd = $c->hostmeta(
       $host,
       $header,
@@ -567,7 +567,7 @@ Mojolicious::Plugin::WebFinger - Serve and Retrieve WebFinger Documents
 
 L<Mojolicious::Plugin::WebFinger> provides several functions for the
 L<WebFinger Protocol|https://datatracker.ietf.org/doc/draft-ietf-appsawg-webfinger/>.
-It supports C<.well-known/webfinger> discovery as well as HostMeta
+It supports C<.well-known/webfinger> discovery as well as Host-Meta
 and works with both XRD and JRD.
 
 B<This module is an early release! There may be significant changes in the future.>
