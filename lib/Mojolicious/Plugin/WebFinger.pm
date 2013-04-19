@@ -5,6 +5,7 @@ use Mojo::URL;
 
 # Todo:
 # - Make callback non-blocking aware
+# - Support 307 Temporary Redirect as described in the spec
 
 our $VERSION = 0.03;
 
