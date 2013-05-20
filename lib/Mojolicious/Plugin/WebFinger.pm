@@ -7,7 +7,7 @@ use Mojo::URL;
 # - Make callback non-blocking aware
 # - Support 307 Temporary Redirect as described in the spec
 
-our $VERSION = 0.03;
+our $VERSION = 0.04;
 
 
 my $WK_PATH = '/.well-known/webfinger';

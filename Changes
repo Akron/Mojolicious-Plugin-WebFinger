@@ -1,3 +1,6 @@
+0.04 2013-05-20
+        - Fixed a small bug in the test suite.
+
 0.03 2013-04-15
         - Added async example.
 	- First release on CPAN.

@@ -31,7 +31,7 @@ Mojolicious::Plugin::WebFinger - Serve and Retrieve WebFinger Documents
 
 L<Mojolicious::Plugin::WebFinger> provides several functions for the
 L<WebFinger Protocol|https://datatracker.ietf.org/doc/draft-ietf-appsawg-webfinger/>.
-It supports C<.well-known/webfinger> discovery as well as HostMeta
+It supports C<.well-known/webfinger> discovery as well as Host-Meta
 and works with both XRD and JRD.
 
 B<This module is an early release! There may be significant changes in the future.>

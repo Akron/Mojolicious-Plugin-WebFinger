@@ -41,7 +41,7 @@ app->callback(
   prepare_webfinger =>
     sub {
       my ($c, $norm) = @_;
-      return 1 if $norm eq $acct;
+      return 1 if index($norm, $acct) >= 0;
     });
 
 $app->hook(
@@ -106,14 +106,14 @@ $t->get_ok('/.well-known/webfinger?resource=nothing')
 $app->callback(
   prepare_webfinger => sub {
     my ($c, $acct) = @_;
-    return 1 if lc $acct eq 'acct:akron@webfing.er';
+    return 1 if lc($acct) eq 'acct:akron@webfing.er';
   });
 
 $app->hook(
   before_serving_webfinger => sub {
     my ($c, $acct, $xrd) = @_;
 
-    if (lc $acct eq 'acct:akron@webfing.er') {
+    if (lc($acct) eq 'acct:akron@webfing.er') {
       $xrd->link(author => 'Nils Diewald');
     };
   });
