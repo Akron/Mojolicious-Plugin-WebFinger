@@ -16,11 +16,11 @@ WriteMakefile(
   },
   PREREQ_PM => {
     'Mojolicious' => 3.94,
-    'XML::Loy' => 0.16,
-    'Mojolicious::Plugin::XRD' => 0.05,
-    'Mojolicious::Plugin::HostMeta' => 0.08,
-    'Mojolicious::Plugin::Util::Endpoint' => 0.13,
-    'Mojolicious::Plugin::Util::Callback' => 0.02
+    'XML::Loy' => 0.18,
+    'Mojolicious::Plugin::XRD' => 0.06,
+    'Mojolicious::Plugin::HostMeta' => 0.09,
+    'Mojolicious::Plugin::Util::Endpoint' => 0.15,
+    'Mojolicious::Plugin::Util::Callback' => 0.03
   },
   LICENSE      => 'perl',
   META_MERGE   => {
