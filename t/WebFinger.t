@@ -29,7 +29,7 @@ $app->hook(
   });
 
 
-is($c->hostmeta->link('lrdd')->attrs('template'),
+is($c->hostmeta->link('lrdd')->attr('template'),
    'http://'.$webfinger_host.'/.well-known/webfinger?resource={uri}',
    'Correct uri');
 
@@ -71,16 +71,16 @@ ok($wf, 'Webfinger');
 is($wf->subject, $acct, 'Subject');
 
 is($wf->link('http://microformats.org/profile/hcard')
-     ->attrs('href'), 'http://sojolicio.us/akron.hcard',
+     ->attr('href'), 'http://sojolicio.us/akron.hcard',
    'Webfinger-hcard');
 is($wf->link('http://microformats.org/profile/hcard')
-     ->attrs('type'), 'text/html',
+     ->attr('type'), 'text/html',
    'Webfinger-hcard-type');
 is($wf->link('describedby')
-     ->attrs('href'), 'http://sojolicio.us/akron.foaf',
+     ->attr('href'), 'http://sojolicio.us/akron.foaf',
    'Webfinger-described_by');
 is($wf->link('describedby')
-     ->attrs('type'), 'application/rdf+xml',
+     ->attr('type'), 'application/rdf+xml',
    'Webfinger-descrybed_by-type');
 
 $t->get_ok('/.well-known/webfinger?resource='.b($acct)->url_escape . '&format=xml')
