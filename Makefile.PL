@@ -4,8 +4,6 @@ use strict;
 use warnings;
 use ExtUtils::MakeMaker;
 
-# First upload new Mojolicious::Plugin::Util::Endpoint
-
 WriteMakefile(
   NAME         => 'Mojolicious::Plugin::WebFinger',
   AUTHOR       => 'Nils Diewald',
@@ -15,14 +13,14 @@ WriteMakefile(
     'Test::More' => 0
   },
   PREREQ_PM => {
-    'Mojolicious' => 4.23,
-    'XML::Loy' => 0.19,
-    'Mojolicious::Plugin::XRD' => 0.06,
-    'Mojolicious::Plugin::HostMeta' => 0.09,
-    'Mojolicious::Plugin::Util::Endpoint' => 0.15,
-    'Mojolicious::Plugin::Util::Callback' => 0.03
+    'Mojolicious' => 6.00,
+    'XML::Loy' => 0.39,
+    'Mojolicious::Plugin::XRD' => 0.15,
+    'Mojolicious::Plugin::HostMeta' => 0.19,
+    'Mojolicious::Plugin::Util::Endpoint' => 0.18,
+    'Mojolicious::Plugin::Util::Callback' => 0.04
   },
-  LICENSE      => 'perl',
+  LICENSE      => 'artistic_2',
   META_MERGE   => {
     requires  => { perl => '5.010001' },
     resources => {

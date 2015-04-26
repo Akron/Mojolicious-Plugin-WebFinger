@@ -1,4 +1,4 @@
-Hihi#!/usr/bin/env perl
+#!/usr/bin/env perl
 # This is a WebFinger server and discoverer
 # for Mojolicious::Plugin::WebFinger
 #

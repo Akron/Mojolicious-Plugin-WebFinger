@@ -12,8 +12,7 @@ use Mojolicious::Lite;
 my $t = Test::Mojo->new;
 my $app = $t->app;
 $app->plugin('WebFinger');
-my $c = Mojolicious::Controller->new;
-$c->app($app);
+my $c = $app->build_controller;
 
 my $webfinger_host = 'webfing.er';
 my $acct = 'acct:akron@webfing.er';
@@ -127,6 +126,46 @@ $t->get_ok('/.well-known/webfinger?resource='.b($acct)->url_escape)
 
 my ($alias) = $c->webfinger('akron')->alias;
 is($alias, 'acct:akron@webfing.er', 'Webfinger');
+
+done_testing(29);
+exit;
+
+# Remote tests
+
+sub _rev {
+  local $_ = join('',reverse(split('', shift)));
+  y/@!/!@/;
+  return $_;
+};
+
+$wf = $c->webfinger(_rev('moc.liamg!dlaweid.slin'));
+
+is($wf->subject, 'acct:' . _rev('moc.liamg!dlaweid.slin'), 'Subject');
+
+is($wf->link('http://portablecontacts.net/spec/1.0')->attr('href'),
+   'http://www-opensocial.googleusercontent.com/api/people/', 'PoCo');
+
+$wf = $c->webfinger(_rev('su.tatsr!eikliw'));
+is(_rev($wf->subject), 'su.tatsr!eikliw:tcca', 'Subject');
+is($wf->link('http://webfinger.net/rel/profile-page')->attr('href'), 'https://rstat.us/users/wilkie', 'Subject');
+ok($wf->link('magic-public-key'), 'MagicKey');
+
+$c->delay(
+  sub {
+    my $delay = shift;
+    $c->webfinger(_rev('moc.liamg!dlaweid.slin') => $delay->begin(0,1));
+    $c->webfinger(_rev('su.tatsr!eikliw') => $delay->begin(0,1));
+    $c->webfinger(_rev('moc.esrevidef!nakre') => $delay-begin(0,1));
+  },
+  sub {
+    my $delay = shift;
+    my ($nils_wf, $wilkie_wf, $fediverse_wf) = @_;
+
+    is($nils_wf->subject, 'acct:' . _rev('moc.liamg!dlaweid.slin'), 'Gmail (in Parallel)');
+    is($wilkie_wf->subject, 'acct:' . _rev('su.tatsr!eikliw'), 'Rstat.us (in Parallel)');
+    is($fediverse_wf->subject, 'acct:' . _rev('moc.esrevidef!nakre'), 'Fediverse (in Parallel)');
+  }
+);
 
 done_testing;
 exit;

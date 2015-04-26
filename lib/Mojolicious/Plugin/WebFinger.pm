@@ -7,7 +7,8 @@ use Mojo::URL;
 # - Make callback non-blocking aware
 # - Support 307 Temporary Redirect as described in the spec
 
-our $VERSION = 0.05;
+
+our $VERSION = 0.06;
 
 
 my $WK_PATH = '/.well-known/webfinger';
@@ -21,7 +22,7 @@ sub register {
 
   # Load parameter from Config file
   if (my $config_param = $mojo->config('WebFinger')) {
-    $param = { %$config_param, %$param };
+    $param = { %$param, %$config_param };
   };
 
   # Load HostMeta if not already loaded.
@@ -80,7 +81,7 @@ sub register {
       };
 
       # Set standard format
-      unless ($c->stash('format') || $c->param('format')) {
+      unless ($c->stash('format') || scalar $c->param('format')) {
 	$c->stash(format => 'jrd');
       };
 
@@ -172,6 +173,7 @@ sub _fetch_webfinger {
   my $c = shift;
 
   my ($acct, $res, $nres, $host);
+
 
   # Request with host information
   if ($_[1] && !ref($_[1]) && index($_[1], '-') != 0) {
@@ -336,7 +338,7 @@ sub _fetch_webfinger {
 	  $host,
 	  $header,
 	  ['lrdd'],
-	  $delay->begin(0)
+	  $delay->begin(0,1)
 	);
 
 	push @param, '-secure' if $secure;
@@ -363,7 +365,7 @@ sub _fetch_webfinger {
 	});
 
 	# Get lrdd
-	$c->get_xrd($lrdd => $header => $delay->begin(0))
+	$c->get_xrd($lrdd => $header => $delay->begin(0,1))
       },
 
       # Step 5
@@ -475,7 +477,7 @@ sub _serve_webfinger {
   );
 
   # Filter relations
-  $xrd = $xrd->filter_rel($c->param('rel')) if $c->param('rel');
+  $xrd = $xrd->filter_rel($c->every_param('rel')) if $c->param('rel');
 
   # Return webfinger document
   return $xrd;
@@ -526,7 +528,7 @@ sub _get_lrdd {
   my $lrdd = $xrd->link('lrdd') or return;
 
   # Get template
-  $lrdd->attrs('template') or return;
+  $lrdd->attr('template') or return;
 };
 
 
@@ -555,7 +557,7 @@ Mojolicious::Plugin::WebFinger - Serve and Retrieve WebFinger Documents
   # Discover WebFinger resources the blocking ...
   print $c->webfinger('acct:bob@example.com')
           ->link('describedby')
-          ->attrs('href');
+          ->attr('href');
 
   # ... or non-blocking way
   $c->webfinger('acct:bob@example.com' => sub {
@@ -787,9 +789,9 @@ This plugin is part of the L<Sojolicious|http://sojolicio.us> project.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2011-2013, L<Nils Diewald|http://nils-diewald.de/>.
+Copyright (C) 2011-2015, L<Nils Diewald|http://nils-diewald.de/>.
 
 This program is free software, you can redistribute it
-and/or modify it under the same terms as Perl.
+and/or modify it under the terms of the Artistic License version 2.0.
 
 =cut
