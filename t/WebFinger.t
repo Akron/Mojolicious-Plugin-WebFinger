@@ -127,9 +127,6 @@ $t->get_ok('/.well-known/webfinger?resource='.b($acct)->url_escape)
 my ($alias) = $c->webfinger('akron')->alias;
 is($alias, 'acct:akron@webfing.er', 'Webfinger');
 
-done_testing(29);
-exit;
-
 # Remote tests
 
 sub _rev {
@@ -137,6 +134,17 @@ sub _rev {
   y/@!/!@/;
   return $_;
 };
+
+
+done_testing(29);
+exit;
+
+$wf = $c->webfinger(_rev('es.rettiuq!norka'));
+
+is($wf->subject, 'acct:' . _rev('es.rettiuq!norka'), 'Subject');
+is($wf->link('http://webfinger.net/rel/profile-page')->attr('href'),
+ 'https://quitter.se/akron', 'Profile');
+
 
 $wf = $c->webfinger(_rev('moc.liamg!dlaweid.slin'));
 

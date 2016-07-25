@@ -8,7 +8,7 @@ use Mojo::URL;
 # - Support 307 Temporary Redirect as described in the spec
 
 
-our $VERSION = 0.06;
+our $VERSION = 0.07;
 
 
 my $WK_PATH = '/.well-known/webfinger';
@@ -126,11 +126,11 @@ sub register {
 	};
 
 	# Server xrd document
-	return $c->render_xrd($xrd, $res);
+	return $c->reply->xrd($xrd, $res);
       };
 
       # No valid xrd document is existing for this resource
-      return $c->render_xrd(undef, $res);
+      return $c->reply->xrd(undef, $res);
     }
   );
 
@@ -789,7 +789,7 @@ This plugin is part of the L<Sojolicious|http://sojolicio.us> project.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2011-2015, L<Nils Diewald|http://nils-diewald.de/>.
+Copyright (C) 2011-2016, L<Nils Diewald|http://nils-diewald.de/>.
 
 This program is free software, you can redistribute it
 and/or modify it under the terms of the Artistic License version 2.0.

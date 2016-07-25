@@ -203,7 +203,7 @@ textarea {
   % foreach (qw/akron nils unknown/) {
     <li><a href="<%= url_for('index')->query([acct => 'acct:' . $_ . '@' . $host]) %>">[/.well-known/webfinger?resource=acct:<%= $_  %>@<%= $host %>]</a></li>
 % };
-% foreach (qw/acct:akron@identi.ca acct:a@gmail.com acct:akron@pod.geraspora.de/) {
+% foreach (qw/acct:akron@identi.ca acct:a@gmail.com/) {
     <li><a href="<%= url_for('index')->query(['acct' => $_]) %>"><%= $_ %></a></li>
 % };
   </ul>
