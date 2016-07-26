@@ -8,7 +8,7 @@ use Mojo::URL;
 # - Support 307 Temporary Redirect as described in the spec
 
 
-our $VERSION = 0.07;
+our $VERSION = 0.08;
 
 
 my $WK_PATH = '/.well-known/webfinger';
