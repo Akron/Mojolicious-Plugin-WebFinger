@@ -6,7 +6,15 @@ use Mojo::URL;
 # Todo:
 # - Make callback non-blocking aware
 # - Support 307 Temporary Redirect as described in the spec
-
+# - Support simple startup defintion, like
+#   plugin WebFinger => {
+#     'akron@sojolicious' => {
+#       describedby => {
+#	  type => 'application/rdf+xml',
+#	  href => 'http://sojolicio.us/akron.foaf'
+#       }
+#     }
+#   };
 
 our $VERSION = 0.09;
 
