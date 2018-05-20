@@ -1,5 +1,6 @@
 blib
 log
+cover_db
 sandbox
 examples/*
 !examples/webfingerapp

@@ -1,3 +1,7 @@
+0.10 2018-05-17
+        - Upgrade dependency to recent version of XML::Loy
+          to be compatible with recent version of Mojolicious.
+
 0.09 2016-09-11
         - Improved documentations.
         - Made access rights Kwalitee compliant.

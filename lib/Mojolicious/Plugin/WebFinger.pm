@@ -16,7 +16,7 @@ use Mojo::URL;
 #     }
 #   };
 
-our $VERSION = 0.09;
+our $VERSION = 0.10;
 
 
 my $WK_PATH = '/.well-known/webfinger';
@@ -792,7 +792,7 @@ This plugin is part of the L<Sojolicious|http://sojolicio.us> project.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2011-2016, L<Nils Diewald|http://nils-diewald.de/>.
+Copyright (C) 2011-2018, L<Nils Diewald|http://nils-diewald.de/>.
 
 This program is free software, you can redistribute it
 and/or modify it under the terms of the Artistic License version 2.0.
