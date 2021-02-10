@@ -15,18 +15,27 @@ WriteMakefile(
   PREREQ_PM => {
     'Mojolicious' => 6.00,
     'XML::Loy' => 0.47,
-    'Mojolicious::Plugin::XRD' => 0.19,
+    'Mojolicious::Plugin::XRD' => 0.21,
     'Mojolicious::Plugin::HostMeta' => 0.21,
     'Mojolicious::Plugin::Util::Endpoint' => 0.19,
     'Mojolicious::Plugin::Util::Callback' => 0.04
   },
   LICENSE      => 'artistic_2',
   META_MERGE   => {
+    'meta-spec' => { version => 2 },
     requires  => { perl => '5.010001' },
     resources => {
       license     => 'http://www.opensource.org/licenses/artistic-license-2.0',
-      repository  => 'https://github.com/Akron/Mojolicious-Plugin-WebFinger'
+      repository  => {
+        type => 'git',
+        url => 'https://github.com/Akron/Mojolicious-Plugin-WebFinger.git',
+        web => 'https://github.com/Akron/Mojolicious-Plugin-WebFinger',
+      },
+      bugtracker => {
+        web => 'https://github.com/Akron/Mojolicious-Plugin-WebFinger/issues'
+      }
     }
+
   },
   MIN_PERL_VERSION => '5.010001',
   test => {TESTS => 't/*.t'}
