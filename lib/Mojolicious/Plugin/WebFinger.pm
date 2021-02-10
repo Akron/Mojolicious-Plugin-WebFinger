@@ -54,7 +54,7 @@ sub register {
   };
 
   # Establish WebFinger Route
-  my $wfr = $mojo->routes->route($WK_PATH);
+  my $wfr = $mojo->routes->any($WK_PATH);
 
   # Establish endpoint
   $wfr->endpoint(

@@ -1,5 +1,6 @@
 0.11 2021-02-10
         - Move bugtracker to GitHub.
+        - Removed deprecated route() in favor of any().
 
 0.10 2018-05-17
         - Upgrade dependency to recent version of XML::Loy
