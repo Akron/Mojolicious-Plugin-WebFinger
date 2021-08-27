@@ -242,8 +242,6 @@ L<Mojolicious::Plugin::HostMeta>.
 
   https://github.com/Akron/Mojolicious-Plugin-WebFinger
 
-This plugin is part of the L<Sojolicious|http://sojolicio.us> project.
-
 
 =head1 COPYRIGHT AND LICENSE
 
